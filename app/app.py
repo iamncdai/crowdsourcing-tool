@@ -108,6 +108,9 @@ def authenticate_token(f):
 
     return decorated
 
+@app.route('/api', methods=['POST'])
+def home():
+    return jsonify({ 'message': 'Working!' })
 
 @app.route('/api/auth/register', methods=['POST'])
 def api_register():
