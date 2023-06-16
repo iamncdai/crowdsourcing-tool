@@ -17,7 +17,6 @@ services:
 
   db:
     image: mysql:8.0
-    restart: always
     environment:
       - MYSQL_INITDB_COLLATION=utf8mb4_unicode_ci
       - MYSQL_ROOT_PASSWORD=18120113
