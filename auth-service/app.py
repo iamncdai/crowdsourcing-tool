@@ -9,6 +9,7 @@ import mysql.connector
 from dotenv import load_dotenv
 from flask import Flask, g, jsonify, request
 from User import User
+import requests
 
 load_dotenv()
 
@@ -178,6 +179,21 @@ def protected_route():
     user = request.user
     return jsonify(user)
 
+def authenticate_token2(token):
+    auth_service_url = "http://auth_service/auth/me"
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    response = requests.get(auth_service_url, headers=headers)
+
+    if response.status_code == 200:
+        # Xác thực thành công
+        user_info = response.json()
+        return user_info
+    else:
+        # Xác thực không thành công
+        return None
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)
