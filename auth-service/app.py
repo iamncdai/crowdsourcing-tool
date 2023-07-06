@@ -1,12 +1,18 @@
-from flask import Flask, request, jsonify, g
-import mysql.connector
+import logging
+import os
+import time
+from functools import wraps
+
 import bcrypt
 import jwt
-from functools import wraps
-import logging
-import time
+import mysql.connector
+from dotenv import load_dotenv
+from flask import Flask, g, jsonify, request
+from User import User
 
-secret_key = 'secret_key@18120113'
+load_dotenv()
+
+secret_key = os.getenv('SECRET_KEY')
 app = Flask(__name__)
 app.secret_key = secret_key
 
@@ -15,10 +21,10 @@ def get_db():
     if 'db' not in g:
         logging.debug('Connecting to the database')
         g.db = mysql.connector.connect(
-            host='db',
-            user='root',
-            password='18120113',
-            database='crowdsourcing-tool'
+            host=os.getenv('DB_HOST'),
+            user=os.getenv('DB_USER'),
+            password=os.getenv('DB_PASS'),
+            database=os.getenv('DB_NAME')
         )
     return g.db
 
@@ -33,31 +39,30 @@ def close_db(error):
 logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
-
-def check_username(username):
+def get_user_by_id(user_id):
     db = get_db()
     cursor = db.cursor()
 
-    query = "SELECT * FROM users WHERE username = %s"
-    params = (username,)
+    query = "SELECT * FROM NguoiDung WHERE idUser = %s"
+    params = (user_id,)
     cursor.execute(query, params)
 
-    user = cursor.fetchone()
+    user_data = cursor.fetchone()
 
     cursor.close()
 
-    if user:
-        return True
+    if user_data:
+        user = User(*user_data).to_dict()
+        return user
     else:
-        return False
+        return None
 
-
-def generate_token(username):
+def generate_token(user_id):
     # 7 days = 7 * 24 * 60 * 60
     expiration_time = time.time() + (7 * 24 * 60 * 60)
 
     payload = {
-        'username': username,
+        'user_id': user_id,
         'exp': expiration_time
     }
 
@@ -97,12 +102,14 @@ def authenticate_token(f):
         if decoded_token is None:
             return jsonify({'message': 'Invalid token'}), 401
 
-        username = decoded_token.get("username")
+        user_id = decoded_token.get("user_id")
+        user = get_user_by_id(user_id)
 
-        if not check_username(username):
+        if user is None:
             return jsonify({'message': 'User does not exist'}), 401
 
         request.decoded_token = decoded_token
+        request.user = user
 
         return f(*args, **kwargs)
 
@@ -112,42 +119,16 @@ def authenticate_token(f):
 def home():
     return jsonify({ 'message': 'Working!' })
 
-@app.route('/api/auth/register', methods=['POST'])
+@app.route('/api/auth/generate-password', methods=['POST'])
 def api_register():
     data = request.get_json()
-    username = data['username']
-    password = data['password']
-    fullName = data['fullName']
-
-    db = get_db()
-    cursor = db.cursor()
-    cursor.execute(
-        f"SELECT * FROM users WHERE username='{username}'"
-    )
-    existing_user = cursor.fetchone()
-
-    if existing_user:
-        response = {
-            'status': 'error',
-            'message': 'Username already exists'
-        }
-    else:
-        hashed_password = bcrypt.hashpw(
+    password = data['Password']
+    hashed_password = bcrypt.hashpw(
             password.encode('utf-8'), bcrypt.gensalt())
 
-        cursor.execute(
-            "INSERT INTO users (username, password, fullName) VALUES (%s, %s, %s)",
-            (username, hashed_password, fullName)
-        )
-        db.commit()
-
-        response = {
-            'status': 'success',
-            'message': 'Registration successful',
-            'token': generate_token(username)
-        }
-
-    cursor.close()
+    response = {
+        'hashed_password': hashed_password.decode('utf-8'),
+    }
 
     return jsonify(response)
 
@@ -155,20 +136,21 @@ def api_register():
 @app.route('/api/auth/login', methods=['POST'])
 def api_login():
     data = request.get_json()
-    username = data['username']
-    password = data['password']
+    username = data['UserName']
+    password = data['Password']
 
     db = get_db()
     cursor = db.cursor()
     cursor.execute(
-        f"SELECT * FROM users WHERE username='{username}'"
+        f"SELECT * FROM NguoiDung WHERE UserName='{username}'"
     )
     user = cursor.fetchone()
 
     if user:
         hashed_password = user[2].encode('utf-8')
+        user_id = user[0]
         if bcrypt.checkpw(password.encode('utf-8'), hashed_password):
-            token = generate_token(username)
+            token = generate_token(user_id)
             response = {
                 'status': 'success',
                 'message': 'Login successful',
@@ -190,29 +172,11 @@ def api_login():
     return jsonify(response)
 
 
-def get_user(username):
-    db = get_db()
-    cursor = db.cursor(dictionary=True)
-
-    query = "SELECT * FROM users WHERE username = %s"
-    params = (username,)
-    cursor.execute(query, params)
-
-    user = cursor.fetchone()
-
-    cursor.close()
-
-    if user:
-        return user
-    else:
-        return None
-
-
 @app.route('/api/auth/me')
 @authenticate_token
 def protected_route():
-    username = request.decoded_token.get('username')
-    return jsonify({'message': 'Hi, ' + username})
+    user = request.user
+    return jsonify(user)
 
 
 if __name__ == '__main__':

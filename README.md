@@ -13,8 +13,8 @@ docker-compose up -d
 Database Configuration
 - Access: `http://localhost:8080`
 - Login with Username/Password: `root/18120113`
-- Create Dabatase: `crowdsourcing-tool`
-- Import data from file: `crowdsourcing-tool.sql`
+- Create Dabatase: `crowdsourcing_tool`
+- Import data from file: `crowdsourcing_tool.sql`
 
 Congratulations on completing the Website installation, access http://localhost:4000/api to use.
 
@@ -22,7 +22,6 @@ Congratulations on completing the Website installation, access http://localhost:
 
 ### Auth
 - Login: http://localhost:4000/api/auth/login
-- Register: http://localhost:4000/api/auth/register
 - Get Profile: http://localhost:4000/api/auth/me
 
 ## Libs
