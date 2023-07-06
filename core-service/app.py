@@ -77,7 +77,7 @@ def authenticated(f):
 @app.route('/api/du-an/tao', methods=['POST'])
 @authenticated
 def create_duan():
-    user = request.user
+    user = request.user.get('idUser')
 
     data = request.get_json()
     TenDA = data['TenDA']
@@ -98,12 +98,12 @@ def get_danhsachduan():
         user_id = request.user.get('idUser')
 
         user = NguoiDung.query.get(user_id)
-        if user.typeUser == '1':
+        if user.typeUser == 1:
             assigned_projects = PhanCongGanNhan.query.filter_by(
                 idNguoiGanNhan=user_id).all()
             project_ids = [project.idDuAn for project in assigned_projects]
             projects = DuAn.query.filter(DuAn.idDuAn.in_(project_ids)).all()
-        elif user.typeUser == '2':
+        elif user.typeUser == 2:
             projects = DuAn.query.all()
         else:
             return jsonify({'status': 'error', 'message': 'Loại người dùng không hợp lệ!'}), 400
@@ -120,7 +120,7 @@ def get_danhsachduan():
 
         return jsonify({'projects': project_list})
     except Exception as e:
-        return jsonify({ 'status': 'error', 'message': str(e)}), 400
+        return jsonify({ 'status': 'error', 'message':str(e)}), 400
 
 
 @app.route('/api/import-vanban', methods=['POST'])
