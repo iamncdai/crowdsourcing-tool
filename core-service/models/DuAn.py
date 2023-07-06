@@ -1,6 +1,7 @@
 from .Database import db
 
 class DuAn(db.Model):
+    __tablename__ = 'DuAn'
     idDuAn = db.Column(db.Integer, primary_key=True, autoincrement=True)
     TenDA = db.Column(db.String(1000), nullable=False)
     idLoaiNhan = db.Column(db.String(100), nullable=False)
