@@ -8,6 +8,7 @@ import json
 import csv
 from dotenv import load_dotenv
 import os
+from flask_cors import CORS
 
 from models.PhanCongGanNhan import PhanCongGanNhan
 from models.Nhan import Nhan
@@ -30,6 +31,7 @@ db_host = os.getenv('DB_HOST')
 db_name = os.getenv('DB_NAME')
 
 app = Flask(__name__)
+cors = CORS(app, resources={r"/*": {"origins": "*"}})
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+mysqlconnector://{db_user}:{db_password}@{db_host}/{db_name}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)
@@ -38,7 +40,7 @@ logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(levelname)s - %(message)s')
 
 def authenticate_token(token):
-    auth_service_url = "http://auth_service:5000/api/auth/me"
+    auth_service_url = "http://auth_service:5000/auth-service/me"
     headers = {
         "Authorization": f"Bearer {token}"
     }
@@ -74,7 +76,7 @@ def authenticated(f):
     return decorated
 
 
-@app.route('/api/du-an/tao', methods=['POST'])
+@app.route('/core-service/du-an/tao', methods=['POST'])
 @authenticated
 def create_duan():
     user = request.user.get('idUser')
@@ -91,7 +93,7 @@ def create_duan():
     return jsonify({'message': 'Dự án đã được khởi tạo thành công!'})
 
 
-@app.route('/api/du-an/danh-sach', methods=['GET'])
+@app.route('/core-service/du-an/danh-sach', methods=['GET'])
 @authenticated
 def get_danhsachduan():
     try:
@@ -123,7 +125,7 @@ def get_danhsachduan():
         return jsonify({ 'status': 'error', 'message':str(e)}), 400
 
 
-@app.route('/api/import-vanban', methods=['POST'])
+@app.route('/core-service/import-vanban', methods=['POST'])
 def import_vanban():
     file = request.files['file']
     data = file.read().decode('utf-8')
@@ -166,7 +168,7 @@ def import_vanban():
         return jsonify({'error': 'Định dạng file không được hỗ trợ!'})
 
 
-@app.route('/api/them-nguoidung-duan', methods=['POST'])
+@app.route('/core-service/them-nguoidung-duan', methods=['POST'])
 def them_nguoidung_duan():
     try:
         data = request.get_json()
@@ -186,7 +188,7 @@ def them_nguoidung_duan():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
-# @app.route('/api/du-an/<int:idDuAn>/ds-du-lieu,', methods=['GET'])
+# @app.route('/core-service/du-an/<int:idDuAn>/ds-du-lieu,', methods=['GET'])
 # def get_data(idDuAn):
     try:
         data_list = DuLieu.query.filter_by(idDuAn=idDuAn).all()
@@ -215,7 +217,7 @@ def them_nguoidung_duan():
         return jsonify({'error': str(e)})
 
 
-@app.route('/api/du-an/<int:idDuAn>/ds-du-lieu,', methods=['GET'])
+@app.route('/core-service/du-an/<int:idDuAn>/ds-du-lieu,', methods=['GET'])
 @authenticated
 def get_dulieuduan(idDuAn):
     try:
@@ -251,7 +253,7 @@ def get_dulieuduan(idDuAn):
         return jsonify({'error': str(e)})
 
 
-@app.route('/api/du-lieu/ds-can-duyet', methods=['GET'])
+@app.route('/core-service/du-lieu/ds-can-duyet', methods=['GET'])
 @authenticated
 def get_ds_can_duyet():
     try:
@@ -281,7 +283,7 @@ def get_ds_can_duyet():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/du-lieu/<int:idDuLieu>t', methods=['PUT'])
+@app.route('/core-service/du-lieu/<int:idDuLieu>t', methods=['PUT'])
 @authenticated
 def update_statusdulieu(idDuLieu):
     try:
@@ -302,7 +304,7 @@ def update_statusdulieu(idDuLieu):
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/du-lieu/<int:idDuLieu>', methods=['GET'])
+@app.route('/core-service/du-lieu/<int:idDuLieu>', methods=['GET'])
 def get_dulieu(idDuLieu):
     try:
         nhan = Nhan.query.filter_by(idDuLieu=idDuLieu).first()
@@ -367,7 +369,7 @@ def get_dulieu(idDuLieu):
         return jsonify({'error': str(e)})
 
 
-@app.route('/api/phan-loai-van-ban/them', methods=['POST'])
+@app.route('/core-service/phan-loai-van-ban/them', methods=['POST'])
 def create_phanloaivanban():
     try:
         data = request.get_json()
@@ -394,7 +396,7 @@ def create_phanloaivanban():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/phan-loai-van-ban/gan-nhan', methods=['POST'])
+@app.route('/core-service/phan-loai-van-ban/gan-nhan', methods=['POST'])
 @authenticated
 def create_gannhanphanloaivanban():
     try:
@@ -419,7 +421,7 @@ def create_gannhanphanloaivanban():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/hoi-dap/them', methods=['POST'])
+@app.route('/core-service/hoi-dap/them', methods=['POST'])
 def create_hoidap():
     try:
         data = request.get_json()
@@ -453,7 +455,7 @@ def create_hoidap():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/hoi-dap/gan-nhan', methods=['POST'])
+@app.route('/core-service/hoi-dap/gan-nhan', methods=['POST'])
 @authenticated
 def create_gannhanhoidap():
     try:
@@ -478,7 +480,7 @@ def create_gannhanhoidap():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/dich-may/them', methods=['POST'])
+@app.route('/core-service/dich-may/them', methods=['POST'])
 def create_dichmay():
     try:
         data = request.get_json()
@@ -507,7 +509,7 @@ def create_dichmay():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/dich-may/gan-nhan', methods=['POST'])
+@app.route('/core-service/dich-may/gan-nhan', methods=['POST'])
 @authenticated
 def create_gannhandichmay():
     try:
@@ -533,7 +535,7 @@ def create_gannhandichmay():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/thuc-the/them', methods=['POST'])
+@app.route('/core-service/thuc-the/them', methods=['POST'])
 def create_thucthe():
     try:
         data = request.get_json()
@@ -560,7 +562,7 @@ def create_thucthe():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/thuc-the/gan-nhan', methods=['POST'])
+@app.route('/core-service/thuc-the/gan-nhan', methods=['POST'])
 @authenticated
 def create_gannhanthucthe():
     try:
@@ -605,7 +607,7 @@ def create_gannhanthucthe():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/van-ban-dong-nghia/them', methods=['POST'])
+@app.route('/core-service/van-ban-dong-nghia/them', methods=['POST'])
 def create_vanbandongnghia():
     try:
         data = request.get_json()
@@ -639,7 +641,7 @@ def create_vanbandongnghia():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/van-ban-dong-nghia/gan-nhan', methods=['POST'])
+@app.route('/core-service/van-ban-dong-nghia/gan-nhan', methods=['POST'])
 @authenticated
 def create_gannhanvanbandongnghia():
     try:
@@ -664,7 +666,7 @@ def create_gannhanvanbandongnghia():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/cap-cau-hoi-van-ban/them', methods=['POST'])
+@app.route('/core-service/cap-cau-hoi-van-ban/them', methods=['POST'])
 def create_capcauhoivanban():
     try:
         data = request.get_json()
@@ -698,7 +700,7 @@ def create_capcauhoivanban():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/cap-cau-hoi-van-ban/gan-nhan', methods=['POST'])
+@app.route('/core-service/cap-cau-hoi-van-ban/gan-nhan', methods=['POST'])
 @authenticated
 def create_gannhancapcauhoivanban():
     try:
@@ -723,7 +725,7 @@ def create_gannhancapcauhoivanban():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/cau-hoi-dong-nghia/them', methods=['POST'])
+@app.route('/core-service/cau-hoi-dong-nghia/them', methods=['POST'])
 def create_cauhoidongnghia():
     try:
         data = request.get_json()
@@ -750,7 +752,7 @@ def create_cauhoidongnghia():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/cap-cau-hoi-dong-nghia/gan-nhan', methods=['POST'])
+@app.route('/core-service/cap-cau-hoi-dong-nghia/gan-nhan', methods=['POST'])
 @authenticated
 def create_gannhancapcauhoidongnghia():
     try:
@@ -781,7 +783,7 @@ def create_gannhancapcauhoidongnghia():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/api/api/test')
+@app.route('/core-service/test')
 @authenticated
 def protected_route():
     idUser = request.user.get('idUser')
