@@ -101,26 +101,30 @@ def get_danhsachduan():
 
         user = NguoiDung.query.get(user_id)
         if user.typeUser == 1:
-            assigned_projects = PhanCongGanNhan.query.filter_by(
-                idNguoiGanNhan=user_id).all()
-            project_ids = [project.idDuAn for project in assigned_projects]
-            projects = DuAn.query.filter(DuAn.idDuAn.in_(project_ids)).all()
+            duan_list = db.session.query(DuAn.idDuAn, DuAn.TenDA, LoaiNhan.LoaiNhan)\
+                .join(DuLieu, DuLieu.idDuAn == DuAn.idDuAn)\
+                .join(PhanCongGanNhan, PhanCongGanNhan.idDuLieu == DuLieu.idDuLieu)\
+                .join(NguoiDung, NguoiDung.idUser == PhanCongGanNhan.idNguoiGanNhan)\
+                .join(LoaiNhan, LoaiNhan.idLoaiNhan == DuAn.idLoaiNhan)\
+                .filter(NguoiDung.typeUser== 1).all()
         elif user.typeUser == 2:
-            projects = DuAn.query.all()
+            duan_list = db.session.query(DuAn.idDuAn, DuAn.TenDA, LoaiNhan.LoaiNhan)\
+                .join(DuLieu, DuLieu.idDuAn == DuAn.idDuAn)\
+                .join(LoaiNhan, LoaiNhan.idLoaiNhan == DuAn.idLoaiNhan)\
+                .all()
         else:
             return jsonify({'status': 'error', 'message': 'Loại người dùng không hợp lệ!'}), 400
 
-        project_list = []
-        for project in projects:
+        response = []
+        for item in duan_list:
             project_data = {
-                'idDuAn': project.idDuAn,
-                'TenDA': project.TenDA,
-                'idLoaiNhan': project.idLoaiNhan,
-                'idQuanLi': project.idQuanLi
+                'idDuAn': item.idDuAn,
+                'TenDA': item.TenDA,
+                'LoaiNhan': item.LoaiNhan,
             }
-            project_list.append(project_data)
+            response.append(project_data)
 
-        return jsonify({'projects': project_list})
+        return jsonify({'projects': response})
     except Exception as e:
         return jsonify({ 'status': 'error', 'message':str(e)}), 400
 
