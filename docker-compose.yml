@@ -12,10 +12,29 @@ services:
       - FLASK_APP=app.py
       - FLASK_ENV=development
       - MYSQL_ROOT_PASSWORD=18120113
+    networks:
+      - ncdai_network
     depends_on:
-      - db
+      - db_service
 
-  db:
+  core_service:
+    build:
+      context: ./core-service
+      dockerfile: Dockerfile
+    ports:
+      - 4400:5000
+    volumes:
+      - ./core-service:/app
+    environment:
+      - FLASK_APP=app.py
+      - FLASK_ENV=development
+      - MYSQL_ROOT_PASSWORD=18120113
+    networks:
+      - ncdai_network
+    depends_on:
+      - db_service
+
+  db_service:
     image: mysql:8.0
     environment:
       - MYSQL_INITDB_COLLATION=utf8mb4_unicode_ci
@@ -23,14 +42,21 @@ services:
       - MYSQL_DATABASE=crowdsourcing-tool
     volumes:
       - ./db_data:/var/lib/mysql
+    networks:
+      - ncdai_network
 
   phpmyadmin:
     image: phpmyadmin:5.2.1-apache
     ports:
       - 8080:80
     environment:
-      - PMA_HOST=db
+      - PMA_HOST=db_service
       - PMA_PORT=3306
       - MYSQL_ROOT_PASSWORD=18120113
+    networks:
+      - ncdai_network
     depends_on:
-      - db
+      - db_service
+
+networks:
+  ncdai_network:

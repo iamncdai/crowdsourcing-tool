@@ -1,5 +1,6 @@
 {
   "python.analysis.diagnosticSeverityOverrides": {
-    "reportMissingImports": "none"
+    "reportMissingImports": "none",
+    "reportMissingModuleSource": "none",
   }
 }
