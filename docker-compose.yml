@@ -25,7 +25,7 @@ services:
       - db_data:/var/lib/mysql
 
   phpmyadmin:
-    image: phpmyadmin/phpmyadmin
+    image: phpmyadmin:5.2.1-apache
     ports:
       - 8080:80
     environment:
