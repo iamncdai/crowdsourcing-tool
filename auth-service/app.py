@@ -118,12 +118,12 @@ def authenticate_token(f):
     return decorated
 
 
-@app.route('/api', methods=['POST'])
+@app.route('/auth-service', methods=['GET'])
 def home():
-    return jsonify({'message': 'Working!'})
+    return jsonify({'message': 'Auth Service is Working!'})
 
 
-@app.route('/api/auth/generate-password', methods=['POST'])
+@app.route('/auth-service/generate-password', methods=['POST'])
 def api_register():
     data = request.get_json()
     password = data['Password']
@@ -137,7 +137,7 @@ def api_register():
     return jsonify(response)
 
 
-@app.route('/api/auth/login', methods=['POST'])
+@app.route('/auth-service/login', methods=['POST'])
 def api_login():
     data = request.get_json()
     username = data['UserName']
@@ -176,7 +176,7 @@ def api_login():
     return jsonify(response)
 
 
-@app.route('/api/auth/me')
+@app.route('/auth-service/me')
 @authenticate_token
 def protected_route():
     user = request.user
