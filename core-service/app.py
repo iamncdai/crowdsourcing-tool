@@ -284,6 +284,22 @@ def get_ds_phancong():
     except Exception as e:
         return jsonify({'success': False, 'status':'error', 'message': str(e)}),400
     
+@app.route('/core-service/ds-ngonngu', methods=['GET'])
+def get_ds_ngonngu():
+    try:
+        ds_ngonngu = NgonNgu.query.all()
+        response = []
+        for ngonngu in ds_ngonngu:
+            ngonngu_data = {
+                'idNgonNgu': ngonngu.idNgonNgu,
+                'NgonNgu': ngonngu.NgonNgu,
+            }
+            response.append(ngonngu_data)
+
+        return jsonify(response)
+    except Exception as e:
+        return jsonify({'success': False, 'status':'error', 'message': str(e)}),400
+    
 @app.route('/core-service/du-lieu/ds-can-duyet', methods=['GET'])
 @authenticated
 def get_ds_can_duyet():
@@ -327,12 +343,14 @@ def get_ds_can_duyet():
         return jsonify({'success': False, 'status':'error','message': str(e)})
 
 
+
 @app.route('/core-service/du-lieu/<int:idDuLieu>', methods=['PUT'])
 @authenticated
 def update_statusdulieu(idDuLieu):
     try:
-        idNguoiGanNhan = request.json['idNguoiGanNhan']
-        trangThai = request.json['trangThai']
+        data = request.get_json()
+        idNguoiGanNhan = data['idNguoiGanNhan']
+        trangThai = data['TrangThai']
 
         # Kiểm tra xem bản ghi PhanCongGanNhan có tồn tại hay không
         phancong = PhanCongGanNhan.query.filter_by(
@@ -345,7 +363,7 @@ def update_statusdulieu(idDuLieu):
 
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'status':'error','message': str(e)}),400
 
 
 @app.route('/core-service/du-lieu/<int:idDuLieu>', methods=['GET'])
@@ -355,11 +373,11 @@ def get_dulieu(idDuLieu):
         if nhan is None:
             return jsonify({'error': 'Không tìm thấy dữ liệu!'})
         vanban = VanBan.query.filter_by(idDuLieu=idDuLieu).first()
+        duan = DuAn.query.filter_by(idDuLieu=idDuLieu).first()
         phancong = PhanCongGanNhan.query.filter_by(
-            idDuAn=vanban.idDuLieu).first()
+            idDuLieu = vanban.idDuLieu).first()
         dulieu = DuLieu.query.filter_by(idDuLieu=vanban.idDuLieu).first()
-        loainhan = LoaiNhan.query.filter_by(
-            idLoaiNhan=vanban.idLoaiNhan).first()
+        loainhan = LoaiNhan.query.filter_by(idLoaiNhan=DuAn.idLoaiNhan).first()
         ngonngu = NgonNgu.query.filter_by(idNgonNgu=nhan.idNgonNgu).first()
         nguoidung = NguoiDung.query.filter_by(idUser=nhan.idNguoiGanNhan)
 
