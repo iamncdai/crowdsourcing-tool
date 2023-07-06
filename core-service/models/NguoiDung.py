@@ -5,7 +5,7 @@ class NguoiDung(db.Model):
 
     idUser = db.Column(db.Integer, primary_key=True)
     UserName = db.Column(db.String(100), nullable=False)
-    Password = db.Column(db.String(100), nullable=False)
+    Password = db.Column(db.String(200), nullable=False)
     Hoten = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(100), nullable=False)
     phoneNumber = db.Column(db.String(100), nullable=False)

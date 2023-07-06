@@ -9,7 +9,6 @@ import csv
 from dotenv import load_dotenv
 import os
 from flask_cors import CORS
-
 from models.PhanCongGanNhan import PhanCongGanNhan
 from models.Nhan import Nhan
 from models.LoaiNhan import LoaiNhan
@@ -29,7 +28,6 @@ db_user = os.getenv('DB_USER')
 db_password = os.getenv('DB_PASS')
 db_host = os.getenv('DB_HOST')
 db_name = os.getenv('DB_NAME')
-
 app = Flask(__name__)
 cors = CORS(app, resources={r"/*": {"origins": "*"}})
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+mysqlconnector://{db_user}:{db_password}@{db_host}/{db_name}'
@@ -101,14 +99,14 @@ def get_danhsachduan():
 
         user = NguoiDung.query.get(user_id)
         if user.typeUser == 1:
-            duan_list = db.session.query(DuAn.idDuAn, DuAn.TenDA, LoaiNhan.LoaiNhan)\
+            duan_list = db.session.query(DuAn.idDuAn, DuAn.TenDA,LoaiNhan.idLoaiNhan, LoaiNhan.LoaiNhan)\
                 .join(DuLieu, DuLieu.idDuAn == DuAn.idDuAn)\
                 .join(PhanCongGanNhan, PhanCongGanNhan.idDuLieu == DuLieu.idDuLieu)\
                 .join(NguoiDung, NguoiDung.idUser == PhanCongGanNhan.idNguoiGanNhan)\
                 .join(LoaiNhan, LoaiNhan.idLoaiNhan == DuAn.idLoaiNhan)\
                 .filter(NguoiDung.typeUser== 1).all()
         elif user.typeUser == 2:
-            duan_list = db.session.query(DuAn.idDuAn, DuAn.TenDA, LoaiNhan.LoaiNhan)\
+            duan_list = db.session.query(DuAn.idDuAn, DuAn.TenDA,LoaiNhan.idLoaiNhan, LoaiNhan.LoaiNhan)\
                 .join(DuLieu, DuLieu.idDuAn == DuAn.idDuAn)\
                 .join(LoaiNhan, LoaiNhan.idLoaiNhan == DuAn.idLoaiNhan)\
                 .all()
@@ -120,11 +118,12 @@ def get_danhsachduan():
             project_data = {
                 'idDuAn': item.idDuAn,
                 'TenDA': item.TenDA,
+                'idLoaiNhan': item.idLoaiNhan,
                 'LoaiNhan': item.LoaiNhan,
             }
             response.append(project_data)
 
-        return jsonify({'projects': response})
+        return jsonify(response)
     except Exception as e:
         return jsonify({ 'status': 'error', 'message':str(e)}), 400
 
