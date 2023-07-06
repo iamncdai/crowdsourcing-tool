@@ -8,6 +8,7 @@ import json
 import csv
 from dotenv import load_dotenv
 import os
+from flask_cors import CORS
 
 from models.PhanCongGanNhan import PhanCongGanNhan
 from models.Nhan import Nhan
@@ -30,6 +31,7 @@ db_host = os.getenv('DB_HOST')
 db_name = os.getenv('DB_NAME')
 
 app = Flask(__name__)
+cors = CORS(app, resources={r"/*": {"origins": "*"}})
 app.config['SQLALCHEMY_DATABASE_URI'] = f'mysql+mysqlconnector://{db_user}:{db_password}@{db_host}/{db_name}'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db.init_app(app)

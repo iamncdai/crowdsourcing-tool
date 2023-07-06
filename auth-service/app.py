@@ -8,6 +8,7 @@ import jwt
 import mysql.connector
 from dotenv import load_dotenv
 from flask import Flask, g, jsonify, request
+from flask_cors import CORS
 from User import User
 
 load_dotenv()
@@ -15,7 +16,7 @@ load_dotenv()
 secret_key = os.getenv('SECRET_KEY')
 app = Flask(__name__)
 app.secret_key = secret_key
-
+cors = CORS(app, resources={r"/*": {"origins": "*"}})
 
 def get_db():
     if 'db' not in g:
