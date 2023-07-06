@@ -11,7 +11,6 @@ services:
     environment:
       - FLASK_APP=app.py
       - FLASK_ENV=development
-      - MYSQL_ROOT_PASSWORD=18120113
     networks:
       - ncdai_network
     depends_on:
@@ -28,7 +27,6 @@ services:
     environment:
       - FLASK_APP=app.py
       - FLASK_ENV=development
-      - MYSQL_ROOT_PASSWORD=18120113
     networks:
       - ncdai_network
     depends_on:
@@ -39,7 +37,7 @@ services:
     environment:
       - MYSQL_INITDB_COLLATION=utf8mb4_unicode_ci
       - MYSQL_ROOT_PASSWORD=18120113
-      - MYSQL_DATABASE=crowdsourcing-tool
+      - MYSQL_DATABASE=crowdsourcing_tool
     volumes:
       - ./db_data:/var/lib/mysql
     networks:
