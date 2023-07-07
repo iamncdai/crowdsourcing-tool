@@ -1,27 +1,28 @@
+import csv
+# from flask_sqlalchemy import SQLAlchemy
+import json
 import logging
+import os
+import uuid
 from functools import wraps
 
 import requests
-from flask import Flask, jsonify, request
-# from flask_sqlalchemy import SQLAlchemy
-import json
-import csv
 from dotenv import load_dotenv
-from sqlalchemy import and_
-import os
+from flask import Flask, jsonify, request
 from flask_cors import CORS
-from models.PhanCongGanNhan import PhanCongGanNhan
-from models.Nhan import Nhan
-from models.LoaiNhan import LoaiNhan
-from models.NguoiDung import NguoiDung
-from models.DuAn import DuAn
-from models.VanBan import VanBan
-from models.Database import db
-from models.DuLieu import DuLieu
-from models.ThucThe import ThucThe
 from models.CauHoiDongNghia import CauHoiDongNghia
-from models.ThucThe_Nhan import ThucThe_Nhan
+from models.Database import db
+from models.DuAn import DuAn
+from models.DuLieu import DuLieu
+from models.LoaiNhan import LoaiNhan
 from models.NgonNgu import NgonNgu
+from models.NguoiDung import NguoiDung
+from models.Nhan import Nhan
+from models.PhanCongGanNhan import PhanCongGanNhan
+from models.ThucThe import ThucThe
+from models.ThucThe_Nhan import ThucThe_Nhan
+from models.VanBan import VanBan
+from sqlalchemy import and_
 
 load_dotenv()
 
@@ -116,6 +117,7 @@ def get_danhsachduan():
             duan_list = db.session.query(DuAn.idDuAn, DuAn.TenDA,LoaiNhan.idLoaiNhan, LoaiNhan.LoaiNhan)\
                 .join(DuLieu, DuLieu.idDuAn == DuAn.idDuAn)\
                 .join(LoaiNhan, LoaiNhan.idLoaiNhan == DuAn.idLoaiNhan)\
+                .filter(DuAn.idQuanLi == user_id)\
                 .all()
         else:
             return jsonify({'status': 'error', 'message': 'Loại người dùng không hợp lệ!'}), 400
@@ -198,33 +200,6 @@ def them_nguoidung_duan():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'status':'error','message': str(e)}),400
-# @app.route('/core-service/du-an/<int:idDuAn>/ds-du-lieu,', methods=['GET'])
-# def get_data(idDuAn):
-    try:
-        data_list = DuLieu.query.filter_by(idDuAn=idDuAn).all()
-
-        result = []
-        for data in data_list:
-            vanban_list = VanBan.query.filter_by(idDuLieu=data.idDuLieu).all()
-
-            vanban_data = []
-            for vanban in vanban_list:
-                vanban_data.append({
-                    'idVanBan': vanban.idVanBan,
-                    'VanBan': vanban.VanBan,
-                    'idNgonNgu': vanban.idNgonNgu,
-                    'idVanBan2': vanban.idVanBan2
-                })
-
-            result.append({
-                'idDuLieu': data.idDuLieu,
-                'idDuAn': data.idDuAn,
-                'VanBan': vanban_data
-            })
-
-        return jsonify({'data': result})
-    except Exception as e:
-        return jsonify({'error': str(e)})
 
 
 @app.route('/core-service/du-an/<int:idDuAn>/ds-du-lieu', methods=['GET'])
@@ -256,6 +231,7 @@ def get_dulieuduan(idDuAn):
             for vb in vanban:
                 for pc in phancong:
                     vanban_data = {
+                        '_id': str(uuid.uuid4()),
                         'idDuAn': duan.idDuAn,
                         'tenDuAn': duan.TenDA,
                         'idDuLieu': du_lieu.idDuLieu,
