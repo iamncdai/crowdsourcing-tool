@@ -646,12 +646,12 @@ def create_gannhanthucthe():
         idNguoiGanNhan = request.user.get('idUser')
         dsThucThe = data['ThucThe']
 
-        nhan = Nhan(idDuLieu, idNguoiGanNhan)
+        nhan = Nhan(idDuLieu, idNguoiGanNhan,None,idNgonNgu=None)
         db.session.add(nhan)
         db.session.commit()
 
         for thucthe in dsThucThe:
-            ten_thucthe = thucthe['TenThucThe']
+            ten_thucthe = thucthe
 
             # Kiểm tra xem ThucThe đã tồn tại trong cơ sở dữ liệu chưa
             existing_thucthe = ThucThe.query.filter_by(
@@ -679,7 +679,7 @@ def create_gannhanthucthe():
 
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'status':'error','message': str(e)}),400
 
 
 #@app.route('/core-service/van-ban-dong-nghia/them', methods=['POST'])
