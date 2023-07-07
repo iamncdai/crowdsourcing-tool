@@ -329,15 +329,16 @@ def get_ds_can_duyet():
 
         response = []
         for item in du_lieu_can_duyet:
-            du_an_data = {
-                'idDuAn': item.idDuAn,
-                'tenDuAn': item.TenDA,
-                'idDuLieu': item.idDuLieu,
-                'vanBan': item.VanBan,
-                'trangThai': item.TrangThai,
-                'HoTen': item.Hoten
-            }
-            response.append(du_an_data)
+            if item.TrangThai != "APPROVED":
+                du_an_data = {
+                    'idDuAn': item.idDuAn,
+                    'tenDuAn': item.TenDA,
+                    'idDuLieu': item.idDuLieu,
+                    'vanBan': item.VanBan,
+                    'trangThai': item.TrangThai,
+                    'HoTen': item.Hoten
+                }
+                response.append(du_an_data)
 
         return jsonify(response)
     except Exception as e:
