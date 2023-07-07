@@ -7,6 +7,7 @@ from flask import Flask, jsonify, request
 import json
 import csv
 from dotenv import load_dotenv
+from sqlalchemy import and_
 import os
 from flask_cors import CORS
 from models.PhanCongGanNhan import PhanCongGanNhan
@@ -324,7 +325,7 @@ def get_ds_can_duyet():
                 .filter(DuLieu.idDuAn == DuAn.idDuAn, PhanCongGanNhan.TrangThai != 'DONE')\
                 .all()
         else:
-            return jsonify({'success': False, 'status': 'error' ,'message': 'Loại người dùng không hợp lệ!'})
+            return jsonify({'success': False, 'status': 'error' ,'message': 'Loại người dùng không hợp lệ!'}),400
 
         response = []
         for item in du_lieu_can_duyet:
@@ -340,7 +341,7 @@ def get_ds_can_duyet():
 
         return jsonify(response)
     except Exception as e:
-        return jsonify({'success': False, 'status':'error','message': str(e)})
+        return jsonify({'success': False, 'status':'error','message': str(e)}),400
 
 
 
@@ -356,7 +357,7 @@ def update_statusdulieu(idDuLieu):
         phancong = PhanCongGanNhan.query.filter_by(
             idDuLieu=idDuLieu, idNguoiGanNhan=idNguoiGanNhan).first()
         if not phancong:
-            return jsonify({'success': False, 'error': 'Người gán nhãn và dữ liệu không tồn tại'})
+            return jsonify({'success': False, 'error': 'Người gán nhãn và dữ liệu không tồn tại'}),400
 
         phancong.TrangThai = trangThai
         db.session.commit()
@@ -369,66 +370,72 @@ def update_statusdulieu(idDuLieu):
 @app.route('/core-service/du-lieu/<int:idDuLieu>', methods=['GET'])
 def get_dulieu(idDuLieu):
     try:
+        dulieu = DuLieu.query.filter_by(idDuLieu=idDuLieu).first()
+        duan = DuAn.query.get(dulieu.idDuLieu)
         nhan = Nhan.query.filter_by(idDuLieu=idDuLieu).first()
         if nhan is None:
-            return jsonify({'error': 'Không tìm thấy dữ liệu!'})
-        vanban = VanBan.query.filter_by(idDuLieu=idDuLieu).first()
-        duan = DuAn.query.filter_by(idDuLieu=idDuLieu).first()
-        phancong = PhanCongGanNhan.query.filter_by(
-            idDuLieu = vanban.idDuLieu).first()
-        dulieu = DuLieu.query.filter_by(idDuLieu=vanban.idDuLieu).first()
-        loainhan = LoaiNhan.query.filter_by(idLoaiNhan=DuAn.idLoaiNhan).first()
+            return jsonify({'status':'error','message': 'Không tìm thấy dữ liệu!'}), 400
+        loainhan = LoaiNhan.query.get(duan.idLoaiNhan)
+        vanban = VanBan.query.filter_by(idDuLieu=nhan.idDuLieu).first()
+        phancong = PhanCongGanNhan.query.filter_by(idDuLieu=nhan.idDuLieu).first()
         ngonngu = NgonNgu.query.filter_by(idNgonNgu=nhan.idNgonNgu).first()
         nguoidung = NguoiDung.query.filter_by(idUser=nhan.idNguoiGanNhan)
-
+        
         response = {}
-
-        if loainhan.LoaiNhan == "Phan_Loai_Van_Ban":
-            response['HoTen'] = nguoidung.HoTen
-            response['VanBan'] = vanban.VanBan
-            response['NoiDung'] = loainhan.LoaiNhan
-            response['TrangThai'] = phancong.TrangThai
-        elif loainhan.LoaiNhan == "Hoi_Dap":
-            response['HoTen'] = nguoidung.HoTen
-            response['VanBan'] = vanban.VanBan
-            response['CauHoi'] = vanban.CauHoi
-            response['NoiDung'] = "Có" if nhan.NoiDung else "Không"
-            response['TrangThai'] = phancong.TrangThai
-        elif loainhan.LoaiNhan == "Dich_May":
-            response['HoTen'] = nguoidung.HoTen
-            response['VanBanGoc'] = vanban.VanBanGoc
-            response['NgonNguGoc'] = ngonngu.NgonNguGoc
-            response['VanBanDich'] = nhan.NoiDung
-            response['NgonNguDich'] = ngonngu.NgonNguDich
-            response['TrangThai'] = phancong.TrangThai
-        elif loainhan.LoaiNhan == "Tim_Cau_Hoi_Dong_Nghia":
-            response['HoTen'] = nguoidung.Hoten
-            response['VanBan'] = vanban.VanBan
-            response['Ds Cau hoi dong nghia'] = CauHoiDongNghia.query.filter_by(
-                idNhan=nhan.idNhan).all()
-            response['TrangThai'] = phancong.TrangThai
-        elif loainhan.LoaiNhan == "Cap_Cau_Hoi_Van_Ban":
-            response['HoTen'] = nguoidung.HoTen
-            response['CauHoi'] = nhan.CauHoi
+        if loainhan.idLoaiNhan == "Phan_Loai_Van_Ban":
+            response['HoTen'] = nguoidung.first().Hoten
             response['VanBan'] = vanban.VanBan
             response['NoiDung'] = nhan.NoiDung
             response['TrangThai'] = phancong.TrangThai
-        elif loainhan.LoaiNhan == "Gan_Nhan_Thuc_The":
-            response['HoTen'] = nguoidung.HoTen
+        elif loainhan.idLoaiNhan == "Hoi_Dap":
+            vanban = VanBan.query.filter(VanBan.idDuLieu == dulieu.idDuLieu,VanBan.idVanBan2_CauHoi != None).first()
+            response['HoTen'] = nguoidung.first().Hoten
             response['VanBan'] = vanban.VanBan
-            response['Ds ThucThe'] = ThucThe.query.filter_by(
-                idNhan=nhan.idNhan).all()
-            response['TrangThai'] = phancong.TrangThai
-        elif loainhan.LoaiNhan == "Gan_Nhan_Cap_Van_Ban":
-            response['HoTen'] = nguoidung.HoTen
-            response['VanBan1'] = vanban.VanBan1
-            response['VanBan2'] = vanban.VanBan2
+            vanban2_cauhoi = VanBan.query.filter_by(idVanBan=vanban.idVanBan2_CauHoi).first()
+            response['CauHoi'] = vanban2_cauhoi.VanBan if vanban2_cauhoi else None
             response['NoiDung'] = "Có" if nhan.NoiDung else "Không"
+            response['TrangThai'] = phancong.TrangThai
+        elif loainhan.idLoaiNhan == "Tim_Cau_Hoi_Dong_Nghia":
+            cauhoidongnghia = CauHoiDongNghia.query.filter_by(idNhan=nhan.idNhan).all()
+            response['HoTen'] = nguoidung.first().Hoten
+            response['CauHoi'] = vanban.VanBan
+            response['DsCauHoiDongNghia'] = [cau_hoi_dong_nghia.CauHoi for cau_hoi_dong_nghia in cauhoidongnghia]
+            response['NoiDung'] = nhan.NoiDung
+            response['TrangThai'] = phancong.TrangThai
+        elif loainhan.idLoaiNhan == "Cap_Cau_Hoi_Van_Ban":
+            vanban = VanBan.query.filter(VanBan.idDuLieu == dulieu.idDuLieu,VanBan.idVanBan2_CauHoi !=  None).first()
+            response['HoTen'] = nguoidung.first().Hoten
+            response['VanBan'] = vanban.VanBan
+            vanban2= VanBan.query.filter_by(idVanBan=vanban.idVanBan2_CauHoi).first()
+            response['CauHoi'] = vanban2.VanBan
+            response['NoiDung'] = nhan.NoiDung
+            response['TrangThai'] = phancong.TrangThai
+        elif loainhan.idLoaiNhan == "Gan_Nhan_Thuc_The":
+            thucthenhan = ThucThe_Nhan.query.filter_by(idNhan=nhan.idNhan).all()
+            response['HoTen'] = nguoidung.first().Hoten
+            response['VanBan'] = vanban.VanBan
+            response['DsThucThe'] = [ThucThe.query.get(thuc_the.idThucThe).TenThucThe for thuc_the in thucthenhan]
+            response['TrangThai'] = phancong.TrangThai
+        elif loainhan.idLoaiNhan == "Gan_Nhan_Cap_Van_Ban":
+            vanban = VanBan.query.filter(VanBan.idDuLieu == dulieu.idDuLieu,VanBan.idVanBan2_CauHoi !=  None).first()
+            response['HoTen'] = nguoidung.first().Hoten
+            response['VanBan1'] = vanban.VanBan
+            vanban2 = VanBan.query.filter_by(idVanBan=vanban.idVanBan2_CauHoi).first()
+            response['VanBan2'] = vanban2.VanBan
+            response['NoiDung'] = "Có" if nhan.NoiDung else "Không"
+            response['TrangThai'] = phancong.TrangThai
+        elif loainhan.idLoaiNhan == "Dich_May":
+            ngonngugoc = NgonNgu.query.filter_by(idNgonNgu= vanban.idNgonNgu).first()
+            response['HoTen'] = nguoidung.first().Hoten
+            response['VanBanGoc'] = vanban.VanBan
+            response['NgonNguGoc'] = ngonngugoc.NgonNgu
+            response['VanBanDich'] = nhan.NoiDung
+            response['NgonNguDich'] = ngonngu.NgonNgu
             response['TrangThai'] = phancong.TrangThai
 
         return jsonify(response)
     except Exception as e:
-        return jsonify({'error': str(e)})
+        return jsonify({'status':'error','message': str(e)}),400
 
 
 @app.route('/core-service/phan-loai-van-ban/them', methods=['POST'])
@@ -437,15 +444,18 @@ def create_phanloaivanban():
         data = request.get_json()
 
         idDuAn = data['idDuAn']
-        vanban = data['vanban']
+        vanban = data['VanBan']
         idNguoiGanNhan = data['idNguoiGanNhan']
-
+        duan = DuAn.query.get(idDuAn)
+        if duan.idLoaiNhan != "Phan_Loai_Van_Ban":
+            return jsonify({'success': False, 'status':'error', 'message':'Dự Án nhập vào không thuộc loại nhãn này!'}),400
         dulieu = DuLieu(idDuAn)
         db.session.add(dulieu)
-        db.session.flush()
+        db.session.commit()
 
-        vanban = VanBan(vanban, dulieu.idDuLieu)
+        vanban = VanBan(vanban,None, dulieu.idDuLieu,None)
         db.session.add(vanban)
+        db.session.commit()
 
         for idNguoiGanNhan_item in idNguoiGanNhan:
             phancong = PhanCongGanNhan(
@@ -455,7 +465,7 @@ def create_phanloaivanban():
 
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'status':'error','message': str(e)}),400
 
 
 @app.route('/core-service/phan-loai-van-ban/gan-nhan', methods=['POST'])
@@ -463,46 +473,48 @@ def create_phanloaivanban():
 def create_gannhanphanloaivanban():
     try:
         data = request.get_json()
-        idDuLieu = data['idDuLieu']
-        idNguoiGanNhan = request.decoded_token.get('idUser')
+        iddulieu = data['idDuLieu']
+        idNguoiGanNhan = request.user.get('idUser')
         NoiDung = data['NoiDung']
-
-        nhan = Nhan(idDuLieu, idNguoiGanNhan, NoiDung, idNgonNgu='Null')
+    
+        nhan = Nhan(iddulieu, idNguoiGanNhan, NoiDung, None)
         db.session.add(nhan)
         db.session.commit()
 
         # Cập nhật trạng thái của PhanCongGanNhan thành 'DONE'
         phancong = PhanCongGanNhan.query.filter_by(
-            idDuLieu=idDuLieu, idNguoiGanNhan=idNguoiGanNhan).first()
+            idDuLieu=iddulieu, idNguoiGanNhan=idNguoiGanNhan).first()
         if phancong:
             phancong.TrangThai = 'DONE'
             db.session.commit()
 
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'status':'error','message': str(e)}),400
 
 
 @app.route('/core-service/hoi-dap/them', methods=['POST'])
 def create_hoidap():
     try:
         data = request.get_json()
-        cauhoi = data['cauhoi']
+        cauhoi = data['CauHoi']
         idDuAn = data['idDuAn']
-        vanban = data['vanban']
+        vanban = data['VanBan']
         idNguoiGanNhan = data['idNguoiGanNhan']
 
+        duan = DuAn.query.get(idDuAn)
+        if duan.idLoaiNhan != "Hoi_Dap":
+            return jsonify({'success': False, 'status':'error', 'message':'Dự Án nhập vào không thuộc loại nhãn này!'}),400
+        
         dulieu = DuLieu(idDuAn)
         db.session.add(dulieu)
         db.session.commit()
 
-        cauhoi = VanBan(cauhoi, idNgonNgu=None,
-                        idDuLieu=dulieu.idDuLieu, idVanBan2=None)
+        cauhoi = VanBan(cauhoi, idNgonNgu=None,idDuLieu=dulieu.idDuLieu, idVanBan2_CauHoi=None)
         db.session.add(cauhoi)
         db.session.commit()
 
-        vanban = VanBan(vanban, idNgonNgu=None,
-                        idDuLieu=dulieu.idDuLieu, idVanBan2=cauhoi.idVanBan)
+        vanban = VanBan(vanban, idNgonNgu=None,idDuLieu=dulieu.idDuLieu, idVanBan2_CauHoi=cauhoi.idVanBan)
         db.session.add(vanban)
         db.session.commit()
 
@@ -514,7 +526,7 @@ def create_hoidap():
 
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'status':'error', 'message': str(e)}),400
 
 
 @app.route('/core-service/hoi-dap/gan-nhan', methods=['POST'])
@@ -523,10 +535,10 @@ def create_gannhanhoidap():
     try:
         data = request.get_json()
         idDuLieu = data['idDuLieu']
-        idNguoiGanNhan = request.decoded_token.get('idUser')
+        idNguoiGanNhan = request.user.get('idUser')
         NoiDung = data['NoiDung']
 
-        nhan = Nhan(idDuLieu, idNguoiGanNhan, NoiDung, idNgonNgu='Null')
+        nhan = Nhan(idDuLieu, idNguoiGanNhan, NoiDung, idNgonNgu=None)
         db.session.add(nhan)
         db.session.commit()
 
@@ -547,29 +559,30 @@ def create_dichmay():
     try:
         data = request.get_json()
         idDuAn = data['idDuAn']
-        VanBan = data['VanBan']
+        vanban = data['VanBan']
         idNgonNgu = data['idNgonNgu']
         idNguoiGanNhan = data['idNguoiGanNhan']
+
+        duan = DuAn.query.get(idDuAn)
+        if duan.idLoaiNhan != "Dich_May":
+            return jsonify({'success': False, 'status':'error', 'message':'Dự Án nhập vào không thuộc loại nhãn này!'}), 400
 
         dulieu = DuLieu(idDuAn)
         db.session.add(dulieu)
         db.session.commit()
 
-        VanBan = Nhan(VanBan, idNgonNgu=idNgonNgu,
-                      idDuLieu=dulieu.idDuLieu, idVanBan2=None)
-        db.session.add(VanBan)
+        vanban = VanBan(vanban, idNgonNgu=idNgonNgu, idDuLieu=dulieu.idDuLieu, idVanBan2_CauHoi=None)
+        db.session.add(vanban)
         db.session.commit()
 
         for idNguoiGanNhan_item in idNguoiGanNhan:
-            phancong = PhanCongGanNhan(
-                dulieu.idDuLieu, idNguoiGanNhan_item, TrangThai='NONE')
+            phancong = PhanCongGanNhan(dulieu.idDuLieu, idNguoiGanNhan_item, TrangThai='NONE')
             db.session.add(phancong)
         db.session.commit()
 
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
+        return jsonify({'success': False, 'status':'error','message': str(e)}),400
 
 @app.route('/core-service/dich-may/gan-nhan', methods=['POST'])
 @authenticated
@@ -577,7 +590,7 @@ def create_gannhandichmay():
     try:
         data = request.get_json()
         idDuLieu = data['idDuLieu']
-        idNguoiGanNhan = request.decoded_token.get('idUser')
+        idNguoiGanNhan = request.user.get('idUser')
         NoiDung = data['NoiDung']
         idNgonNgu = data['idNgonNgu']
 
@@ -602,15 +615,15 @@ def create_thucthe():
     try:
         data = request.get_json()
         idDuAn = data['idDuAn']
-        VanBan = data['VanBan']
+        VanBan_text = data['VanBan']
         idNguoiGanNhan = data['idNguoiGanNhan']
 
         dulieu = DuLieu(idDuAn)
         db.session.add(dulieu)
         db.session.commit()
 
-        VanBan = Nhan(VanBan, dulieu.idDuLieu)
-        db.session.add(VanBan)
+        vanban = VanBan(VanBan_text,idNgonNgu =None, idDuLieu = dulieu.idDuLieu,idVanBan2_CauHoi= None)
+        db.session.add(vanban)
         db.session.commit()
 
         for idNguoiGanNhan_item in idNguoiGanNhan:
@@ -621,7 +634,7 @@ def create_thucthe():
 
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'status':'error','message': str(e)}),400
 
 
 @app.route('/core-service/thuc-the/gan-nhan', methods=['POST'])
@@ -630,7 +643,7 @@ def create_gannhanthucthe():
     try:
         data = request.get_json()
         idDuLieu = data['idDuLieu']
-        idNguoiGanNhan = request.decoded_token.get('idUser')
+        idNguoiGanNhan = request.user.get('idUser')
         dsThucThe = data['ThucThe']
 
         nhan = Nhan(idDuLieu, idNguoiGanNhan)
@@ -669,8 +682,8 @@ def create_gannhanthucthe():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/core-service/van-ban-dong-nghia/them', methods=['POST'])
-def create_vanbandongnghia():
+#@app.route('/core-service/van-ban-dong-nghia/them', methods=['POST'])
+#def create_vanbandongnghia():
     try:
         data = request.get_json()
         idDuAn = data['idDuAn']
@@ -701,7 +714,40 @@ def create_vanbandongnghia():
         return jsonify({'success': True})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+@app.route('/core-service/van-ban-dong-nghia/them', methods=['POST'])
+def create_vanbandongnghia():
+    try:
+        data = request.get_json()
+        idDuAn = data['idDuAn']
+        VanBan1 = data['VanBan1']
+        VanBan2 = data['VanBan2']
+        idNguoiGanNhan = data['idNguoiGanNhan']
+        duan = DuAn.query.get(idDuAn)
+        if duan.idLoaiNhan != "Gan_Nhan_Cap_Van_Ban":
+            return jsonify({'success': False, 'status':'error', 'message':'Dự Án nhập vào không thuộc loại nhãn này!'}),400
+        dulieu = DuLieu(idDuAn)
+        db.session.add(dulieu)
+        db.session.commit()
 
+        VanBan1 = VanBan(VanBan1, idNgonNgu=None,
+                         idDuLieu=dulieu.idDuLieu, idVanBan2_CauHoi=None)
+        db.session.add(VanBan1)
+        db.session.commit()
+
+        VanBan2 = VanBan(VanBan2, idNgonNgu=None,
+                         idDuLieu=dulieu.idDuLieu, idVanBan2_CauHoi=VanBan1.idVanBan)
+        db.session.add(VanBan2)
+        db.session.commit()
+
+        for idNguoiGanNhan_item in idNguoiGanNhan:
+            phancong = PhanCongGanNhan(
+                dulieu.idDuLieu, idNguoiGanNhan_item, TrangThai='NONE')
+            db.session.add(phancong)
+        db.session.commit()
+
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'status':'error','message': str(e)}),400
 
 @app.route('/core-service/van-ban-dong-nghia/gan-nhan', methods=['POST'])
 @authenticated
@@ -709,10 +755,10 @@ def create_gannhanvanbandongnghia():
     try:
         data = request.get_json()
         idDuLieu = data['idDuLieu']
-        idNguoiGanNhan = request.decoded_token.get('idUser')
+        idNguoiGanNhan = request.user.get('idUser')
         NoiDung = data['NoiDung']
 
-        nhan = Nhan(idDuLieu, idNguoiGanNhan, NoiDung, idNgonNgu='Null')
+        nhan = Nhan(idDuLieu, idNguoiGanNhan, NoiDung, idNgonNgu=None)
         db.session.add(nhan)
         db.session.commit()
 
@@ -725,7 +771,7 @@ def create_gannhanvanbandongnghia():
 
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'status':'error','message': str(e)}),400
 
 
 @app.route('/core-service/cap-cau-hoi-van-ban/them', methods=['POST'])
@@ -733,21 +779,21 @@ def create_capcauhoivanban():
     try:
         data = request.get_json()
         idDuAn = data['idDuAn']
-        VanBan = data['VanBan']
-        cauhoi = data['cauhoi']
+        vanban_text = data['VanBan']
+        cauhoi_text = data['CauHoi']
         idNguoiGanNhan = data['idNguoiGanNhan']
-
+        duan = DuAn.query.get(idDuAn)
+        if duan.idLoaiNhan != "Cap_Cau_Hoi_Van_Ban":
+            return jsonify({'success': False, 'status': 'error', 'message': 'Dự Án nhập vào không thuộc loại nhãn này!'}), 400
         dulieu = DuLieu(idDuAn)
         db.session.add(dulieu)
         db.session.commit()
 
-        VanBan = VanBan(VanBan, idNgonNgu=None,
-                        idDuLieu=dulieu.idDuLieu, idVanBan2=None)
-        db.session.add(VanBan)
+        vanban = VanBan(vanban_text, idNgonNgu=None, idDuLieu=dulieu.idDuLieu, idVanBan2_CauHoi=None)
+        db.session.add(vanban)
         db.session.commit()
 
-        cauhoi = VanBan(cauhoi, idNgonNgu=None,
-                        idDuLieu=dulieu.idDuLieu, idVanBan2=VanBan.idVanBan)
+        cauhoi = VanBan(cauhoi_text, idNgonNgu=None, idDuLieu=dulieu.idDuLieu, idVanBan2_CauHoi=vanban.idVanBan)
         db.session.add(cauhoi)
         db.session.commit()
 
@@ -759,7 +805,7 @@ def create_capcauhoivanban():
 
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({'success': False, 'error': str(e)}), 400
 
 
 @app.route('/core-service/cap-cau-hoi-van-ban/gan-nhan', methods=['POST'])
@@ -768,10 +814,10 @@ def create_gannhancapcauhoivanban():
     try:
         data = request.get_json()
         idDuLieu = data['idDuLieu']
-        idNguoiGanNhan = request.decoded_token.get('idUser')
+        idNguoiGanNhan = request.user.get('idUser')
         NoiDung = data['NoiDung']
 
-        nhan = Nhan(idDuLieu, idNguoiGanNhan, NoiDung, idNgonNgu='Null')
+        nhan = Nhan(idDuLieu, idNguoiGanNhan, NoiDung, idNgonNgu=None)
         db.session.add(nhan)
         db.session.commit()
 
@@ -787,8 +833,8 @@ def create_gannhancapcauhoivanban():
         return jsonify({'success': False, 'error': str(e)})
 
 
-@app.route('/core-service/cau-hoi-dong-nghia/them', methods=['POST'])
-def create_cauhoidongnghia():
+#@app.route('/core-service/cau-hoi-dong-nghia/them', methods=['POST'])
+#def create_cauhoidongnghia():
     try:
         data = request.get_json()
         idDuAn = data['idDuAn']
@@ -813,22 +859,49 @@ def create_cauhoidongnghia():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/core-service/cau-hoi-dong-nghia/them', methods=['POST'])
+def create_cauhoidongnghia():
+    try:
+        data = request.get_json()
+        idDuAn = data['idDuAn']
+        CauHoi = data['CauHoi']
+        idNguoiGanNhan = data['idNguoiGanNhan']
+        duan = DuAn.query.get(idDuAn)
+        if duan.idLoaiNhan != "Tim_Cau_Hoi_Dong_Nghia":
+            return jsonify({'success': False, 'status':'error', 'message':'Dự Án nhập vào không thuộc loại nhãn này!'}),400
+        dulieu = DuLieu(idDuAn)
+        db.session.add(dulieu)
+        db.session.commit()
 
-@app.route('/core-service/cap-cau-hoi-dong-nghia/gan-nhan', methods=['POST'])
+        CauHoi = VanBan(CauHoi,idNgonNgu=1, idDuLieu= dulieu.idDuLieu,idVanBan2_CauHoi= None)
+        db.session.add(CauHoi)
+        db.session.commit()
+
+        for idNguoiGanNhan_item in idNguoiGanNhan:
+            phancong = PhanCongGanNhan(
+                dulieu.idDuLieu, idNguoiGanNhan_item, TrangThai='NONE')
+            db.session.add(phancong)
+        db.session.commit()
+
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'status':'error','message': str(e)}),400
+
+@app.route('/core-service/cau-hoi-dong-nghia/gan-nhan', methods=['POST'])
 @authenticated
 def create_gannhancapcauhoidongnghia():
     try:
         data = request.get_json()
         idDuLieu = data['idDuLieu']
-        idNguoiGanNhan = request.decoded_token.get('idUser')
-        dscauhoidongnghia = data['dscauhoidongnghia']
+        idNguoiGanNhan = request.user.get('idUser')
+        dscauhoidongnghia = data['dsCauHoiDongNghia']
 
-        nhan = Nhan(idDuLieu, idNguoiGanNhan)
+        nhan = Nhan(idDuLieu, idNguoiGanNhan, None, None)
         db.session.add(nhan)
         db.session.commit()
 
         for cauhoidungnghia in dscauhoidongnghia:
-            ten_cauhoi = CauHoiDongNghia['dscauhoidongnghia']
+            ten_cauhoi = cauhoidungnghia
             new_cauhoidungnghia = CauHoiDongNghia(nhan.idNhan, ten_cauhoi)
             db.session.add(new_cauhoidungnghia)
             db.session.commit()
@@ -842,8 +915,7 @@ def create_gannhancapcauhoidongnghia():
 
         return jsonify({'success': True})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
+        return jsonify({'success': False, 'status': 'error', 'message': str(e)}), 400
 
 @app.route('/core-service/test')
 @authenticated
