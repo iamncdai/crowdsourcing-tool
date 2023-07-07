@@ -137,48 +137,6 @@ def get_danhsachduan():
         return jsonify({ 'status': 'error', 'message':str(e)}), 400
 
 
-@app.route('/core-service/import-vanban', methods=['POST'])
-def import_vanban():
-    file = request.files['file']
-    data = file.read().decode('utf-8')
-
-    # Kiểm tra định dạng file (json hoặc csv) dựa trên phần mở rộng tệp
-    if file.filename.endswith('.json'):
-        try:
-            json_data = json.loads(data)
-            for item in json_data:
-                vanban = VanBan(
-                    VanBan=item['VanBan'],
-                    idNgonNgu=item['idNgonNgu'],
-                    idDuAn=item['idDuAn'],
-                    idVanBan2=item['idVanBan2']
-                )
-                db.session.add(vanban)
-            db.session.commit()
-            return jsonify({'message': 'Dữ liệu đã được import thành công từ tệp JSON!'})
-        except json.JSONDecodeError:
-            return jsonify({'status':'error','message': 'Định dạng JSON không hợp lệ!'}),400
-
-    elif file.filename.endswith('.csv'):
-        try:
-            csv_data = csv.reader(data.splitlines(), delimiter=',')
-            next(csv_data)  # Bỏ qua header của file CSV
-            for row in csv_data:
-                vanban = VanBan(
-                    VanBan=row[0],
-                    idNgonNgu=int(row[1]),
-                    idDuAn=int(row[2]),
-                    idVanBan2=int(row[3])
-                )
-                db.session.add(vanban)
-            db.session.commit()
-            return jsonify({'message': 'Dữ liệu đã được import thành công từ tệp CSV!'})
-        except csv.Error:
-            return jsonify({'status':'error','message': 'Định dạng CSV không hợp lệ!'}),400
-
-    else:
-        return jsonify({'status':'error','message': 'Định dạng file không được hỗ trợ!'}),400
-
 
 @app.route('/core-service/them-nguoidung-duan', methods=['POST'])
 def them_nguoidung_duan():
@@ -202,6 +160,49 @@ def them_nguoidung_duan():
         return jsonify({'success': False, 'status':'error','message': str(e)}),400
 
 
+@app.route('/core-service/du-an/<int:idDuAn>/ds-phancong', methods=['GET'])
+@authenticated
+def get_dulieuphancong(idDuAn):
+    try:
+        user_id = request.user.get('idUser')
+        user = NguoiDung.query.get(user_id)
+        duan = DuAn.query.get(idDuAn)
+        dulieutest = DuLieu.query.filter(DuLieu.idDuAn == idDuAn).all()
+
+        if user.typeUser == 2:
+            if duan.idQuanLi != user_id:
+                return jsonify({'status': 'error', 'message': 'Người dùng không được quản lý dự án'}),400
+            dulieu = DuLieu.query.filter_by(idDuAn=idDuAn).all()
+        elif user.typeUser == 1:
+            phancong = PhanCongGanNhan.query.filter_by(idNguoiGanNhan=user_id).first()
+            if phancong is None:
+                return jsonify({'status': 'error', 'message': 'Người dùng không được phân công trong dự án!'}),400
+
+            dulieu = DuLieu.query.filter(DuLieu.idDuAn == idDuAn).all()
+        else:
+            return jsonify({'status': 'error', 'message': 'Loại người dùng không hợp lệ!'}),400
+        
+        vanban_list = []
+        for du_lieu in dulieu:
+            vanban = VanBan.query.filter_by(idDuLieu=du_lieu.idDuLieu, idVanBan2_CauHoi = None).all()
+            phancong = PhanCongGanNhan.query.filter_by(idDuLieu=du_lieu.idDuLieu).all()
+            for vb in vanban:
+                for pc in phancong:
+                    nguoidung = NguoiDung.query.filter_by(idUser = pc.idNguoiGanNhan).first()
+                    vanban_data = {
+                            '_id': str(uuid.uuid4()),
+                            'idDuAn': duan.idDuAn,
+                            'tenDuAn': duan.TenDA,
+                            'idDuLieu': du_lieu.idDuLieu,
+                            'vanBan': vb.VanBan,
+                            'trangThai': pc.TrangThai,
+                            'HoTen': nguoidung.Hoten
+                        }
+                    vanban_list.append(vanban_data)
+        return jsonify(vanban_list)
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)}),400
+    
 @app.route('/core-service/du-an/<int:idDuAn>/ds-du-lieu', methods=['GET'])
 @authenticated
 def get_dulieuduan(idDuAn):
@@ -229,17 +230,16 @@ def get_dulieuduan(idDuAn):
             vanban = VanBan.query.filter_by(idDuLieu=du_lieu.idDuLieu).all()
             phancong = PhanCongGanNhan.query.filter_by(idDuLieu=du_lieu.idDuLieu).all()
             for vb in vanban:
-                for pc in phancong:
-                    vanban_data = {
+
+                vanban_data = {
                         '_id': str(uuid.uuid4()),
                         'idDuAn': duan.idDuAn,
                         'tenDuAn': duan.TenDA,
                         'idDuLieu': du_lieu.idDuLieu,
                         'vanBan': vb.VanBan,
-                        'trangThai': pc.TrangThai,
-                        'HoTen': user.Hoten
+                        'HoTen': [NguoiDung.query.get(phan_cong.idNguoiGanNhan).Hoten for phan_cong in phancong]
                     }
-                    vanban_list.append(vanban_data)
+                vanban_list.append(vanban_data)
         return jsonify(vanban_list)
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)}),400
