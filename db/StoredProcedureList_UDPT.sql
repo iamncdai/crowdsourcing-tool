@@ -1,4 +1,4 @@
-USE UDPT_G8;
+-- USE crowdsourcing_tool;
 
 DELIMITER //
 create procedure sp_Xem_DuAn(IN p_iduser int)
