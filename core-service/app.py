@@ -414,15 +414,17 @@ def update_statusdulieu(idDuLieu):
         # Kiểm tra xem bản ghi PhanCongGanNhan có tồn tại hay không
         phancong = PhanCongGanNhan.query.filter_by(
             idDuLieu=idDuLieu, idNguoiGanNhan=idNguoiGanNhan).first()
+
         if not phancong:
-            return jsonify({'success': False, 'error': 'Người gán nhãn và dữ liệu không tồn tại'}), 400
+            return jsonify({'status': 'error', 'message': 'Người gán nhãn và dữ liệu không tồn tại'}), 400
 
         phancong.TrangThai = trangThai
         db.session.commit()
 
-        return jsonify({'success': True})
+        return jsonify({'status': 'success'})
+
     except Exception as e:
-        return jsonify({'success': False, 'status': 'error', 'message': str(e)}), 400
+        return jsonify({'status': 'error', 'message': str(e)}), 400
 
 
 @app.route('/core-service/du-lieu/<int:idDuLieu>/chi-tiet-gan-nhan', methods=['GET'])
