@@ -189,7 +189,7 @@ def get_dulieuphancong(idDuAn):
         user_id = request.user.get('idUser')
         user = NguoiDung.query.get(user_id)
         duan = DuAn.query.get(idDuAn)
-        dulieutest = DuLieu.query.filter(DuLieu.idDuAn == idDuAn).all()
+        # dulieutest = DuLieu.query.filter(DuLieu.idDuAn == idDuAn).all()
 
         if user.typeUser == 2:
             if duan.idQuanLi != user_id:
@@ -340,17 +340,16 @@ def get_ds_nhiemvu():
 
         response = []
         for item in du_lieu_can_duyet:
-            if item.TrangThai != "APPROVED":
-                du_an_data = {
-                    '_id': str(uuid.uuid4()),
-                    'idDuAn': item.idDuAn,
-                    'tenDuAn': item.TenDA,
-                    'idDuLieu': item.idDuLieu,
-                    'vanBan': item.VanBan,
-                    'trangThai': item.TrangThai,
-                    'phanCong': item.Hoten
-                }
-                response.append(du_an_data)
+            du_an_data = {
+                '_id': str(uuid.uuid4()),
+                'idDuAn': item.idDuAn,
+                'tenDuAn': item.TenDA,
+                'idDuLieu': item.idDuLieu,
+                'vanBan': item.VanBan,
+                'trangThai': item.TrangThai,
+                'phanCong': item.Hoten
+            }
+            response.append(du_an_data)
 
         return jsonify(response)
     except Exception as e:
@@ -431,13 +430,13 @@ def update_statusdulieu(idDuLieu):
 def get_dulieu(idDuLieu):
     try:
         dulieu = DuLieu.query.filter_by(idDuLieu=idDuLieu).first()
-        duan = DuAn.query.get(dulieu.idDuLieu)
+        duan = DuAn.query.get(dulieu.idDuAn)
         nhan = Nhan.query.filter_by(idDuLieu=idDuLieu).first()
         if nhan is None:
             return jsonify({'status': 'error', 'message': 'Không tìm thấy dữ liệu!'}), 400
         loainhan = LoaiNhan.query.get(duan.idLoaiNhan)
         vanban = VanBan.query.filter_by(idDuLieu=nhan.idDuLieu).first()
-        phancong = PhanCongGanNhan.query.filter_by(idDuLieu=nhan.idDuLieu).first()
+        phancong = PhanCongGanNhan.query.filter_by(idDuLieu=nhan.idDuLieu, idNguoiGanNhan=nhan.idNguoiGanNhan).first()
         ngonngu = NgonNgu.query.filter_by(idNgonNgu=nhan.idNgonNgu).first()
         nguoidung = NguoiDung.query.filter_by(idUser=nhan.idNguoiGanNhan)
 
