@@ -121,7 +121,7 @@ insert into PhanCongGanNhan (idDuLieu, idNguoiGanNhan, TrangThai) values
 (8,9, 'APPROVED'),
 (9,6, 'APPROVED'),
 (10,10, 'APPROVED'),
-(10,11, 'DONE'),
+(10,11, 'NONE'),
 (11,14, 'REJECTED'),
 (12,8, 'REJECTED'),
 (13,9, 'APPROVED'),
